@@ -252,7 +252,13 @@ async function startMission(mode) {
     }
 }
 
+/* --- [PATCH] 클릭 잠금 해제 (초기화) --- */
+// renderQuestion 함수 시작 시 실행
 function renderQuestion() {
+    // 피드백 레이어 숨기기 안전장치
+    document.getElementById('feedback-layer').style.display = 'none';
+    
+    // 이후 기존 renderQuestion 로직 실행...
     const q = state.questions[state.currentIndex];
     const st = state.stats.find(s => clean(s.problem) === clean(q.problem)) || { count: 0, wrong: 0, rate: 0 };
     
@@ -360,7 +366,22 @@ function processAnswer(userVal, userText) {
         currentResultRef = null; // 참조 해제
         nextQuestion(); 
     };
-    
+    /* --- [PATCH] 클릭 잠금 실행 --- */
+if (q.sheetType === 'MULTI') {
+    // 객관식: 모든 버튼 비활성화 및 커서 변경
+    const btns = document.querySelectorAll('#quiz-options button');
+    btns.forEach(b => {
+        b.disabled = true;
+        b.style.pointerEvents = 'none'; // 물리적 클릭 완전 차단
+        b.style.opacity = '0.7';        // 시각적 피드백
+    });
+} else {
+    // 주관식: 입력창 및 전송 버튼 비활성화
+    const input = document.getElementById('ans-input');
+    const sendBtn = document.querySelector('#quiz-options button');
+    if(input) { input.disabled = true; input.style.background = '#1a1a1a'; }
+    if(sendBtn) { sendBtn.disabled = true; sendBtn.style.opacity = '0.5'; }
+}
     layer.style.display = 'block';
     setTimeout(() => status.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
 }
