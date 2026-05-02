@@ -489,22 +489,24 @@ function renderDC() {
     });
 
     state.dcData.forEach((d, i) => {
-        const typeLabel = (d.sheetType || '').trim() === 'MULTI' ? '객관식' : (d.sheetType === 'SUBJ' ? '주관식' : '일반');
+       const typeLabel = (d[1] || '').trim() === 'MULTI' ? '객관식' : (d[1] === 'SUBJ' ? '주관식' : '일반');
         const row = document.createElement('tr');
         const ratePct = (d.rate * 100).toFixed(0);
-        row.innerHTML = `
-            <td>${typeLabel}</td>
-            <td>${d.category}</td>
-            <td style="cursor:pointer; color:var(--main-theme);" onclick="toggleAccordion(${i})">${d.problem}</td>
-            <td>${d.count}</td>
-            <td>${d.wrong}</td>
-            <td>
-                <div class="rate-bar-container">
-                    <div class="rate-bar" style="width:${ratePct}%"></div>
-                    <span style="position:relative; z-index:1; padding-left:5px;">${ratePct}%</span>
-                </div>
-            </td>
-               `;
+       row.innerHTML = `
+    <td style="text-align: center; white-space: nowrap;">${typeLabel}</td>
+    <td style="text-align: center; white-space: nowrap;">${d.category}</td>
+    <td style="text-align: left; cursor: pointer; color: var(--main-theme);" onclick="toggleAccordion(${i})">
+        ${d.problem}
+    </td>
+    <td style="text-align: center; white-space: nowrap;">${d.count}</td>
+    <td style="text-align: center; white-space: nowrap;">${d.wrong}</td>
+    <td style="text-align: center;">
+        <div class="rate-bar-container">
+            <div class="rate-bar" style="width:${ratePct}%"></div>
+            <span style="position:relative; z-index:1;">${ratePct}%</span>
+        </div>
+    </td>
+`;
         list.appendChild(row);
 
         const acc = document.createElement('tr');
