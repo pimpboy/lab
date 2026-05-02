@@ -481,9 +481,6 @@ async function openDataCenter(sub) {
 function renderDC() {
     const list = document.getElementById('dc-list');
     list.innerHTML = '';
-    // ... 기존 코드 루프 내부 ...
-    const typeLabel = d.sheetType === 'MULTI' ? '객관식' : (d.sheetType === 'SUBJ' ? '주관식' : '일반');
-    // row.innerHTML 내부에 d.sheetType 대신 typeLabel 사용
     
     state.dcData.sort((a, b) => {
         let vA = a[state.sortKey], vB = b[state.sortKey];
@@ -505,6 +502,9 @@ function renderDC() {
                     <span style="position:relative; z-index:1; padding-left:5px;">${ratePct}%</span>
                 </div>
             </td>
+              // ... 기존 코드 루프 내부 ...
+    const typeLabel = d.sheetType === 'MULTI' ? '객관식' : (d.sheetType === 'SUBJ' ? '주관식' : '일반');
+    // row.innerHTML 내부에 d.sheetType 대신 typeLabel 사용
         `;
         list.appendChild(row);
 
