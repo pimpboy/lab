@@ -5,17 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ATC Training Center v3.1</title>
     <style>
-        :root {
-            --bg: #0a0a0a;
-            --radar-green: #00ff41;
-            --radar-dim: rgba(0, 255, 65, 0.1);
-            --danger-red: #ff3333;
-            --danger-dim: rgba(255, 51, 51, 0.1);
-            --card-bg: #151515;
-            --text-white: #e0e0e0;
-            --border: #2a2a2a;
-            --main-theme: var(--radar-green);
-        }
+       :root {
+    --bg: #121214; /* 딥 챠콜 */
+    --card: #1c1c1e; /* 슬레이트 */
+    --radar-green: #30d158; /* iOS 스타일 그린 */
+    --danger-red: #ff453a; /* iOS 스타일 레드 */
+    --text-white: #ffffff;
+    --text-sub: #8e8e93;
+    --border: #2c2c2e;
+    --main-theme: var(--radar-green);
+}
+
+/* 3. 라이트 모드 (하단 토글 시 적용) */
+body.light-mode {
+    --bg: #f2f2f7;
+    --card: #ffffff;
+    --text-white: #1c1c1e;
+    --text-sub: #86868b;
+    --border: #d1d1d6;
+}
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'Pretendard', sans-serif; }
         body { background: var(--bg); color: var(--text-white); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         .container { width: 100%; max-width: 600px; }
@@ -55,7 +63,27 @@
         
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner { width: 40px; height: 40px; border: 3px solid #222; border-top-color: var(--main-theme); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+    /* 6. 데이터 센터 대분류 줄바꿈 방지 */
+.dc-table td:nth-child(2) { 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+}
+    /* 3. 테마 스위치 위치 설정 */
+.theme-switch-wrapper {
+    position: fixed; bottom: 30px; right: 20px; z-index: 9999;
+    display: flex; align-items: center; gap: 10px;
+    background: var(--card); padding: 10px 15px; border-radius: 50px;
+    border: 1px solid var(--border); box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
     </style>
+    <div class="theme-switch-wrapper">
+    <span style="font-size: 11px; font-weight: 700; color: var(--text-sub);">LIGHT MODE</span>
+    <label class="switch" style="width: 40px; height: 20px;">
+        <input type="checkbox" onchange="document.body.classList.toggle('light-mode')">
+        <span class="slider"></span>
+    </label>
+</div>
 </head>
 <body>
 
@@ -398,10 +426,12 @@ function confirmAbort() {
 async function finishSession() {
     if (state.results.length === 0) { location.reload(); return; }
     showPage('page-loading');
-    document.getElementById('loading-text').innerText = "SYNCING LOGS...";
-    
-    const cfg = CONFIG[state.difficulty];
+    const loadingText = document.getElementById('loading-text');
+
     try {
+        loadingText.innerText = "Passing Threshold"; // 전송 시작
+        const cfg = CONFIG[state.difficulty];
+        
         await fetch(cfg.URL, { 
             method: 'POST', 
             body: JSON.stringify({ 
@@ -409,10 +439,18 @@ async function finishSession() {
                 statsGid: cfg.GIDs[`${state.subject}_STATS`] 
             }) 
         });
-        alert("동기화 완료. 고생하셨습니다.");
-        location.reload();
+
+        loadingText.innerText = "Touch down"; // 전송 완료
+        
+        setTimeout(() => {
+            loadingText.innerText = "Taxiing to terminal"; // 최종 이동 전
+            setTimeout(() => {
+                location.reload(); 
+            }, 1200);
+        }, 1000);
+
     } catch (e) {
-        alert("동기화 실패: " + e.message);
+        alert("Comms Failure: " + e.message);
         location.reload();
     }
 }
@@ -443,6 +481,9 @@ async function openDataCenter(sub) {
 function renderDC() {
     const list = document.getElementById('dc-list');
     list.innerHTML = '';
+    // ... 기존 코드 루프 내부 ...
+    const typeLabel = d.sheetType === 'MULTI' ? '객관식' : (d.sheetType === 'SUBJ' ? '주관식' : '일반');
+    // row.innerHTML 내부에 d.sheetType 대신 typeLabel 사용
     
     state.dcData.sort((a, b) => {
         let vA = a[state.sortKey], vB = b[state.sortKey];
