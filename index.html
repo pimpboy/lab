@@ -1,1 +1,473 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATC Training Center v3.1</title>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --radar-green: #00ff41;
+            --radar-dim: rgba(0, 255, 65, 0.1);
+            --danger-red: #ff3333;
+            --danger-dim: rgba(255, 51, 51, 0.1);
+            --card-bg: #151515;
+            --text-white: #e0e0e0;
+            --border: #2a2a2a;
+            --main-theme: var(--radar-green);
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'Pretendard', sans-serif; }
+        body { background: var(--bg); color: var(--text-white); margin: 0; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .container { width: 100%; max-width: 600px; }
+        .hidden { display: none !important; }
 
+        /* UI Elements */
+        .card { background: var(--card-bg); border-radius: 20px; padding: 20px; margin-bottom: 15px; border: 1px solid var(--border); }
+        button { border-radius: 12px; cursor: pointer; transition: 0.2s; font-weight: bold; border: none; padding: 14px; width: 100%; font-size: 1rem; }
+        button:active { transform: scale(0.98); }
+        .btn-primary { background: var(--main-theme); color: #000; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-white); }
+        .btn-abort { width: auto; padding: 6px 12px; background: #222; color: var(--danger-red); font-size: 0.75rem; border: 1px solid #333; }
+        
+        /* Toggle Switch */
+        .toggle-area { display: flex; align-items: center; justify-content: center; gap: 15px; margin: 20px 0; background: #1a1a1a; padding: 10px 20px; border-radius: 50px; border: 1px solid #333; }
+        .switch { position: relative; width: 44px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #333; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background: var(--danger-red); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* Progress Bar */
+        .progress-container { width: 100%; background: #222; height: 6px; border-radius: 10px; margin: 10px 0; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--main-theme); width: 0%; transition: 0.4s; box-shadow: 0 0 10px var(--main-theme); }
+
+        /* Data Center Table */
+        .dc-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 10px; }
+        .dc-table th { background: #222; padding: 12px 8px; text-align: left; cursor: pointer; border-bottom: 2px solid var(--border); }
+        .dc-table td { padding: 12px 8px; border-bottom: 1px solid var(--border); }
+        .rate-bar-container { position: relative; width: 100%; background: #222; height: 18px; border-radius: 4px; overflow: hidden; }
+        .rate-bar { position: absolute; height: 100%; background: var(--main-theme); opacity: 0.3; }
+        .accordion-content { background: #111; padding: 15px; display: none; border-left: 3px solid var(--main-theme); font-size: 0.9rem; }
+
+        /* Feedback Layer */
+        #feedback-layer { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 600px; background: #0f0f0f; border-top: 4px solid var(--main-theme); padding: 20px; display: none; z-index: 1000; border-radius: 25px 25px 0 0; }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { width: 40px; height: 40px; border: 3px solid #222; border-top-color: var(--main-theme); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="page-home">
+        <h1 id="main-title" style="text-align:center; color:var(--radar-green); letter-spacing:3px; margin: 40px 0 10px;">ATC TOWER v3.1</h1>
+        <div class="toggle-area">
+            <span style="font-size:0.75rem; color:#666;">NORMAL</span>
+            <label class="switch">
+                <input type="checkbox" id="diff-toggle" onchange="updateTheme(this.checked)">
+                <span class="slider"></span>
+            </label>
+            <span style="font-size:0.75rem; color:var(--danger-red);">HELL</span>
+        </div>
+
+        <div id="subject-cards">
+            <div class="card">
+                <h3 style="margin-top:0;">✈️ 항공법규 (LAW)</h3>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+                    <button class="btn-primary" onclick="prepSession('LAW', 'MULTI')">객관식</button>
+                    <button class="btn-primary" onclick="prepSession('LAW', 'SUBJ')">주관식</button>
+                </div>
+                <button class="btn-outline" onclick="openDataCenter('LAW')" style="font-size:0.8rem; padding:8px;">📊 LAW DATA CENTER</button>
+            </div>
+            <div class="card">
+                <h3 style="margin-top:0;">📡 항공관제 (CTRL)</h3>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+                    <button class="btn-primary" onclick="prepSession('CTRL', 'MULTI')">객관식</button>
+                    <button class="btn-primary" onclick="prepSession('CTRL', 'SUBJ')">주관식</button>
+                </div>
+                <button class="btn-outline" onclick="openDataCenter('CTRL')" style="font-size:0.8rem; padding:8px;">📊 CTRL DATA CENTER</button>
+            </div>
+        </div>
+
+        <div id="mission-profile" class="hidden">
+            <div class="card" style="text-align:center; border-color: var(--main-theme);">
+                <p id="profile-title" style="font-weight:bold; color:var(--main-theme); margin-bottom:20px;"></p>
+                <button class="btn-outline" onclick="startMission('OMAKASE')" style="margin-bottom:10px;">🍱 100문항 오마카세</button>
+                <button class="btn-outline" onclick="startMission('WRONG')">📝 100문항 오답노트</button>
+                <button onclick="location.reload()" style="background:none; color:#555; margin-top:20px;">CANCEL</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-quiz" class="hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+            <span id="quiz-pos" style="font-size:0.8rem; font-weight:bold; color:var(--main-theme);">POS: 0 / 0</span>
+            <button class="btn-abort" onclick="confirmAbort()">ABORT MISSION</button>
+        </div>
+        <div class="progress-container"><div class="progress-bar" id="quiz-pb"></div></div>
+        <div id="question-stats" style="font-size:0.7rem; color:#888; text-align:right; margin-bottom:15px;"></div>
+        
+        <div id="question-text" style="font-size:1.1rem; line-height:1.6; margin:20px 0; min-height:60px;"></div>
+        <div id="quiz-options"></div>
+    </div>
+
+    <div id="page-dc" class="hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 id="dc-title" style="margin:0; font-size:1.2rem; color:var(--main-theme);">DATA CENTER</h2>
+            <button class="btn-abort" onclick="showPage('page-home')" style="color:#fff;">CLOSE</button>
+        </div>
+        <div class="card" style="padding:10px; overflow-x:auto;">
+            <table class="dc-table">
+                <thead>
+                    <tr>
+                        <th onclick="sortDC('sheetType')">유형</th>
+                        <th onclick="sortDC('category')">대분류</th>
+                        <th onclick="sortDC('problem')">문제</th>
+                        <th onclick="sortDC('count')">기출</th>
+                        <th onclick="sortDC('wrong')">오답</th>
+                        <th onclick="sortDC('rate')">오답률</th>
+                    </tr>
+                </thead>
+                <tbody id="dc-list"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="page-loading" class="hidden">
+        <div style="text-align:center; margin-top:150px;">
+            <div class="spinner"></div>
+            <p id="loading-text" style="color:var(--main-theme); font-weight:bold; letter-spacing:2px;"></p>
+        </div>
+    </div>
+</div>
+
+<div id="feedback-layer">
+    <div id="fb-status" style="text-align:center; padding:8px; border-radius:8px; font-weight:bold; margin-bottom:15px;"></div>
+    <div style="background:#1a1a1a; padding:15px; border-radius:12px; margin-bottom:15px; border:1px solid #222;">
+        <div id="fb-answer" style="color:var(--main-theme); font-weight:bold; margin-bottom:8px;"></div>
+        <div id="fb-explan" style="font-size:0.85rem; color:#aaa; line-height:1.5; white-space:pre-wrap;"></div>
+    </div>
+    <div id="fb-actions" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <button id="btn-next" class="btn-primary">NEXT CONTACT</button>
+        <button id="btn-special" class="btn-outline" style="font-size:0.8rem;"></button>
+    </div>
+</div>
+
+<script>
+// --- CONFIG & STATE ---
+const CONFIG = {
+    EZ: {
+        URL: "https://script.google.com/macros/s/AKfycbxQdRw8bAcYSfZWNV6r808lVpwED88FaZj6bviR1pMZ2DimYDKHYu13jeT7oXaT04ErGw/exec",
+        GIDs: { LAW_MULTI: "0", LAW_SUBJ: 1036407965, CTRL_MULTI: 438358690, CTRL_SUBJ: 1403157384, LAW_STATS: 1846282036, CTRL_STATS: 1880986641 }
+    },
+    INFERNO: {
+        URL: "https://script.google.com/macros/s/AKfycbzjGLlSq7-xpO0dZxCWExg06paUtwsP1kcPBXTCXhDzm8wkU0CJCyCADB0gJKsU76z7RA/exec",
+        GIDs: { LAW_MULTI: "0", LAW_SUBJ: 1805786990, CTRL_MULTI: 2049752243, CTRL_SUBJ: 570358631, LAW_STATS: 668283973, CTRL_STATS: 1546545747 }
+    }
+};
+
+let state = {
+    difficulty: 'EZ',
+    subject: '',
+    type: '',
+    questions: [],
+    stats: [],
+    currentIndex: 0,
+    results: [],
+    dcData: [],
+    sortKey: 'rate',
+    sortAsc: false
+};
+
+// --- CORE UTILS ---
+function updateTheme(isHell) {
+    state.difficulty = isHell ? 'INFERNO' : 'EZ';
+    const themeColor = isHell ? 'var(--danger-red)' : 'var(--radar-green)';
+    document.documentElement.style.setProperty('--main-theme', themeColor);
+    document.getElementById('main-title').style.color = themeColor;
+}
+
+function showPage(id) {
+    ['page-home', 'page-quiz', 'page-loading', 'page-dc'].forEach(p => document.getElementById(p).classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+    window.scrollTo(0, 0);
+}
+
+const clean = (s) => String(s || '').replace(/\s+/g, '').toLowerCase();
+
+function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+// --- SESSION LOGIC ---
+function prepSession(sub, type) {
+    state.subject = sub; state.type = type;
+    document.getElementById('profile-title').innerText = `[${sub}] ${type === 'MULTI' ? '객관식' : '주관식'} 훈련`;
+    document.getElementById('subject-cards').classList.add('hidden');
+    document.getElementById('mission-profile').classList.remove('hidden');
+}
+
+async function startMission(mode) {
+    const loadingText = document.getElementById('loading-text');
+    loadingText.innerText = "SQUAWK IDENT...";
+    showPage('page-loading');
+
+    const cfg = CONFIG[state.difficulty];
+    const statsGid = cfg.GIDs[`${state.subject}_STATS`];
+    const targetGid = cfg.GIDs[`${state.subject}_${state.type}`];
+
+    try {
+        const [sRes, qRes] = await Promise.all([
+            fetch(`${cfg.URL}?gid=${statsGid}`),
+            fetch(`${cfg.URL}?gid=${targetGid}`)
+        ]);
+        state.stats = await sRes.json();
+        const allQuestions = await qRes.json();
+
+        loadingText.innerText = "RADAR CONTACT, MY CONTROL";
+        
+        // 정렬 및 추출
+        allQuestions.sort((a, b) => {
+            const stA = state.stats.find(s => clean(s.problem) === clean(a.problem)) || { count: 0, rate: 0, wrong: 0 };
+            const stB = state.stats.find(s => clean(s.problem) === clean(b.problem)) || { count: 0, rate: 0, wrong: 0 };
+            return mode === 'OMAKASE' ? (stA.count - stB.count || stB.rate - stA.rate) : (stB.wrong - stA.wrong);
+        });
+
+        state.questions = shuffle([...allQuestions.slice(0, 100)]);
+        state.currentIndex = 0; state.results = [];
+        
+        setTimeout(() => {
+            renderQuestion();
+            showPage('page-quiz');
+        }, 800);
+
+    } catch (e) {
+        alert("데이터 통신 오류: " + e.message);
+        location.reload();
+    }
+}
+
+function renderQuestion() {
+    const q = state.questions[state.currentIndex];
+    const st = state.stats.find(s => clean(s.problem) === clean(q.problem)) || { count: 0, wrong: 0, rate: 0 };
+    
+    document.getElementById('quiz-pos').innerText = `POS: ${state.currentIndex + 1} / ${state.questions.length}`;
+    document.getElementById('quiz-pb').style.width = `${((state.currentIndex + 1) / state.questions.length) * 100}%`;
+    document.getElementById('question-stats').innerText = `기출: ${st.count} | 오답: ${st.wrong} | 오답률: ${(st.rate * 100).toFixed(1)}%`;
+    document.getElementById('question-text').innerText = `[${q.category}] ${q.problem}`;
+    
+    const area = document.getElementById('quiz-options');
+    area.innerHTML = '';
+
+    if (q.sheetType === 'MULTI') {
+        const indexed = q.choices.map((text, i) => ({ text, originalIdx: i + 1 }));
+        shuffle(indexed).forEach((choice, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'btn-outline';
+            btn.style.marginBottom = '10px';
+            btn.innerText = `${idx + 1}. ${choice.text}`;
+            btn.onclick = () => processAnswer(choice.originalIdx, choice.text);
+            area.appendChild(btn);
+        });
+    } else {
+        const input = document.createElement('input');
+        input.type = 'text'; input.id = 'ans-input'; 
+        input.style.width = '100%'; input.style.padding = '15px';
+        input.style.background = '#000'; input.style.color = '#fff';
+        input.style.border = '1px solid #333'; input.style.borderRadius = '12px';
+        input.placeholder = 'Type Answer...';
+        input.onkeyup = (e) => e.key === 'Enter' && processAnswer(input.value, input.value);
+        area.appendChild(input);
+        
+        const btn = document.createElement('button');
+        btn.className = 'btn-primary'; btn.style.marginTop = '15px';
+        btn.innerText = 'SEND CONTACT';
+        btn.onclick = () => processAnswer(input.value, input.value);
+        area.appendChild(btn);
+        input.focus();
+    }
+}
+// 전역 또는 state 객체 내에 현재 처리 중인 결과 객체를 추적하기 위한 변수 확보
+let currentResultRef = null; 
+
+function processAnswer(userVal, userText) {
+    const q = state.questions[state.currentIndex];
+    const answers = q.answer.split(',').map(a => clean(a));
+    
+    const isCorrect = (q.sheetType === 'MULTI')
+        ? (String(userVal) === q.answer || clean(userText) === clean(q.answer))
+        : answers.includes(clean(userVal));
+
+    // [무결성 패치]: 결과 객체를 생성하여 상수에 할당
+    const resultObj = { 
+        problem: q.problem, 
+        category: q.category, 
+        answer: q.answer, 
+        explan: q.explan, 
+        sheetType: q.sheetType, 
+        isCorrect: isCorrect, 
+        isDeviation: false, // 초기값 false
+        originGid: CONFIG[state.difficulty].GIDs[`${state.subject}_${state.type}`]
+    };
+
+    // 배열에 추가 (이 시점부터 resultObj는 state.results[last]와 동일한 메모리 주소를 참조함)
+    state.results.push(resultObj);
+    // 현재 조작 중인 객체의 참조를 전역 변수에 저장
+    currentResultRef = resultObj; 
+
+    // Feedback UI 설정
+    const layer = document.getElementById('feedback-layer');
+    const status = document.getElementById('fb-status');
+    const specBtn = document.getElementById('btn-special');
+    
+    status.innerText = isCorrect ? "● RADAR CONTACT (CORRECT)" : "● UNIDENTIFIED (INCORRECT)";
+    status.style.color = isCorrect ? 'var(--radar-green)' : 'var(--danger-red)';
+    status.style.background = isCorrect ? 'var(--radar-dim)' : 'var(--danger-dim)';
+    
+    document.getElementById('fb-answer').innerText = `정답: ${q.answer}`;
+    document.getElementById('fb-explan').innerText = q.explan || "No supplementary information.";
+    
+    // [호환성 패치]: 난이도별 특수 버튼 로직 재배치
+    if (state.difficulty === 'EZ') {
+        specBtn.innerText = "🔄 GO AROUND";
+        specBtn.style.color = 'var(--text-white)';
+        specBtn.onclick = () => { 
+            state.results.pop(); // 방금 넣은 결과 삭제
+            layer.style.display = 'none'; 
+            nextQuestion(); 
+        };
+    } else {
+        specBtn.innerText = "⚠️ DEVIATION";
+        specBtn.style.color = 'var(--text-white)';
+        specBtn.onclick = () => { 
+            // [핵심]: 참조 변수를 통해 배열 내 객체의 값을 직접 변경
+            if (currentResultRef) {
+                currentResultRef.isDeviation = true;
+                specBtn.innerText = "✅ MARKED";
+                specBtn.style.color = "yellow";
+                console.log("Deviation Flagged:", currentResultRef.problem);
+            }
+        };
+    }
+
+    document.getElementById('btn-next').onclick = () => { 
+        layer.style.display = 'none'; 
+        currentResultRef = null; // 참조 해제
+        nextQuestion(); 
+    };
+    
+    layer.style.display = 'block';
+    setTimeout(() => status.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+}
+function nextQuestion() {
+    state.currentIndex++;
+    if (state.currentIndex < state.questions.length) renderQuestion();
+    else finishSession();
+}
+
+function confirmAbort() {
+    if (confirm("현재까지의 기록만 동기화하고 중단하시겠습니까?")) finishSession();
+}
+
+async function finishSession() {
+    if (state.results.length === 0) { location.reload(); return; }
+    showPage('page-loading');
+    document.getElementById('loading-text').innerText = "SYNCING LOGS...";
+    
+    const cfg = CONFIG[state.difficulty];
+    try {
+        await fetch(cfg.URL, { 
+            method: 'POST', 
+            body: JSON.stringify({ 
+                results: state.results, 
+                statsGid: cfg.GIDs[`${state.subject}_STATS`] 
+            }) 
+        });
+        alert("동기화 완료. 고생하셨습니다.");
+        location.reload();
+    } catch (e) {
+        alert("동기화 실패: " + e.message);
+        location.reload();
+    }
+}
+
+// --- DATA CENTER LOGIC ---
+async function openDataCenter(sub) {
+    state.subject = sub;
+    const loadingText = document.getElementById('loading-text');
+    loadingText.innerText = "FETCHING ARCHIVE...";
+    showPage('page-loading');
+
+    const cfg = CONFIG[state.difficulty];
+    const statsGid = cfg.GIDs[`${sub}_STATS`];
+
+    try {
+        const res = await fetch(`${cfg.URL}?gid=${statsGid}`);
+        const raw = await res.json();
+        state.dcData = raw.filter(d => d.count >= 1 && d.wrong >= 1);
+        
+        renderDC();
+        showPage('page-dc');
+    } catch (e) {
+        alert("데이터 로드 실패");
+        showPage('page-home');
+    }
+}
+
+function renderDC() {
+    const list = document.getElementById('dc-list');
+    list.innerHTML = '';
+    
+    state.dcData.sort((a, b) => {
+        let vA = a[state.sortKey], vB = b[state.sortKey];
+        return state.sortAsc ? (vA > vB ? 1 : -1) : (vA < vB ? 1 : -1);
+    });
+
+    state.dcData.forEach((d, i) => {
+        const row = document.createElement('tr');
+        const ratePct = (d.rate * 100).toFixed(0);
+        row.innerHTML = `
+            <td>${d.sheetType || 'N/A'}</td>
+            <td>${d.category}</td>
+            <td style="cursor:pointer; color:var(--main-theme);" onclick="toggleAccordion(${i})">${d.problem}</td>
+            <td>${d.count}</td>
+            <td>${d.wrong}</td>
+            <td>
+                <div class="rate-bar-container">
+                    <div class="rate-bar" style="width:${ratePct}%"></div>
+                    <span style="position:relative; z-index:1; padding-left:5px;">${ratePct}%</span>
+                </div>
+            </td>
+        `;
+        list.appendChild(row);
+
+        const acc = document.createElement('tr');
+        acc.id = `acc-${i}`;
+        acc.className = 'accordion-content';
+        acc.innerHTML = `<td colspan="6">
+            <div style="font-weight:bold; color:var(--main-theme); margin-bottom:5px;">정답: ${d.answer}</div>
+            <div style="color:#888;">${d.explan || '해설 없음'}</div>
+        </td>`;
+        list.appendChild(acc);
+    });
+}
+
+function toggleAccordion(i) {
+    const el = document.getElementById(`acc-${i}`);
+    el.style.display = (el.style.display === 'table-row') ? 'none' : 'table-row';
+}
+
+function sortDC(key) {
+    if (state.sortKey === key) state.sortAsc = !state.sortAsc;
+    else { state.sortKey = key; state.sortAsc = false; }
+    renderDC();
+}
+
+</script>
+</body>
+</html>
