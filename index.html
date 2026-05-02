@@ -52,8 +52,9 @@ body.light-mode {
 
         /* Data Center Table */
         .dc-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 10px; }
-        .dc-table th { background: #222; padding: 12px 8px; text-align: left; cursor: pointer; border-bottom: 2px solid var(--border); }
-        .dc-table td { padding: 12px 8px; border-bottom: 1px solid var(--border); }
+        .dc-table th { background: #222; padding: 12px 8px; text-align: center; cursor: pointer; border-bottom: 2px solid var(--border); }
+        .dc-table td { padding: 12px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        .dc-table td:nth-child(3) { text-align: left;     white-space: normal; } /* 문제는 길면 줄바꿈 허용 */
         .rate-bar-container { position: relative; width: 100%; background: #222; height: 18px; border-radius: 4px; overflow: hidden; }
         .rate-bar { position: absolute; height: 100%; background: var(--main-theme); opacity: 0.3; }
         .accordion-content { background: #111; padding: 15px; display: none; border-left: 3px solid var(--main-theme); font-size: 0.9rem; }
@@ -488,7 +489,7 @@ function renderDC() {
     });
 
     state.dcData.forEach((d, i) => {
-        const typeLabel = d.sheetType === 'MULTI' ? '객관식' : (d.sheetType === 'SUBJ' ? '주관식' : '일반');
+        const typeLabel = (d.sheetType || '').trim() === 'MULTI' ? '객관식' : (d.sheetType === 'SUBJ' ? '주관식' : '일반');
         const row = document.createElement('tr');
         const ratePct = (d.rate * 100).toFixed(0);
         row.innerHTML = `
