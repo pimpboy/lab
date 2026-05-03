@@ -531,7 +531,53 @@ function sortDC(key) {
     else { state.sortKey = key; state.sortAsc = false; }
     renderDC();
 }
+function renderDataCenter(data) {
+    const list = document.getElementById('dc-list');
+    list.innerHTML = '';
 
+    data.forEach((d, i) => {
+        const ratePct = d.count > 0 ? Math.round((1 - (d.wrong / d.count)) * 100) : 0;
+        
+        // [PATCH] 데이터 무결성 기반 유형 라벨 생성
+        let typeLabel = '';
+        if (d.sheetType === 'MULTI') {
+            typeLabel = '<span style="color:var(--radar-green); font-weight:bold;">객관식</span>';
+        } else if (d.sheetType === 'SUBJ') {
+            typeLabel = '<span style="color:#e5c07b; font-weight:bold;">주관식</span>';
+        } else {
+            typeLabel = '<span style="color:var(--text-sub);">미분류</span>';
+        }
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td style="text-align: center; white-space: nowrap;">${typeLabel}</td>
+            <td style="text-align: center; white-space: nowrap;">${d.category}</td>
+            <td style="text-align: left; cursor: pointer; color: var(--main-theme);" onclick="toggleAccordion(${i})">
+                ${d.problem}
+            </td>
+            <td style="text-align: center; white-space: nowrap;">${d.count}</td>
+            <td style="text-align: center; white-space: nowrap;">${d.wrong}</td>
+            <td style="text-align: center;">
+                <div class="rate-bar-container">
+                    <div class="rate-bar" style="width:${ratePct}%"></div>
+                    <span style="position:relative; z-index:1;">${ratePct}%</span>
+                </div>
+            </td>
+        `;
+        list.appendChild(row);
+
+        const acc = document.createElement('tr');
+        acc.id = `acc-${i}`;
+        acc.className = 'accordion-content';
+        acc.innerHTML = `
+            <td colspan="6">
+                <div style="font-weight:bold; color:var(--main-theme); margin-bottom:5px;">정답: ${d.answer}</div>
+                <div style="color:var(--text-sub);">${d.explan || '해설 없음'}</div>
+            </td>
+        `;
+        list.appendChild(acc);
+    });
+}
 </script>
 </body>
 </html>
