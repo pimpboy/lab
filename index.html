@@ -531,21 +531,23 @@ function sortDC(key) {
     else { state.sortKey = key; state.sortAsc = false; }
     renderDC();
 }
-function renderDataCenter(data) {
+
+    function renderDataCenter(data) {
     const list = document.getElementById('dc-list');
+    if (!list) return;
     list.innerHTML = '';
 
     data.forEach((d, i) => {
         const ratePct = d.count > 0 ? Math.round((1 - (d.wrong / d.count)) * 100) : 0;
         
-        // [PATCH] 데이터 무결성 기반 유형 라벨 생성
+        // 데이터 무결성 검사 및 라벨 매핑
         let typeLabel = '';
         if (d.sheetType === 'MULTI') {
             typeLabel = '<span style="color:var(--radar-green); font-weight:bold;">객관식</span>';
         } else if (d.sheetType === 'SUBJ') {
             typeLabel = '<span style="color:#e5c07b; font-weight:bold;">주관식</span>';
         } else {
-            typeLabel = '<span style="color:var(--text-sub);">미분류</span>';
+            typeLabel = '<span style="color:var(--text-sub);">통계데이터</span>';
         }
 
         const row = document.createElement('tr');
