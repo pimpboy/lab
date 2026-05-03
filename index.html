@@ -489,10 +489,11 @@ function renderDC() {
     });
 
     state.dcData.forEach((d, i) => {
-       const typeLabel = (d[1] || '').trim() === 'MULTI' ? '객관식' : (d[1] === 'SUBJ' ? '주관식' : '일반');
-        const row = document.createElement('tr');
-        const ratePct = (d.rate * 100).toFixed(0);
-       row.innerHTML = `
+       const typeRaw = (d['유형'] || d.sheetType || '').trim(); // '유형' 열을 우선적으로 읽음
+       const typeLabel = typeRaw === 'MULTI' ? '객관식' : (typeRaw === 'SUBJ' ? '주관식' : '일반');
+       const ratePct = (d.rate * 100).toFixed(0);
+       const row = document.createElement('tr');
+              row.innerHTML = `
     <td style="text-align: center; white-space: nowrap;">${typeLabel}</td>
     <td style="text-align: center; white-space: nowrap;">${d.category}</td>
     <td style="text-align: left; cursor: pointer; color: var(--main-theme);" onclick="toggleAccordion(${i})">
