@@ -299,15 +299,18 @@ function renderQuestion() {
     area.innerHTML = '';
 
     if (q.sheetType === 'MULTI') {
-        // 객관식 무결성 래핑: 원본 인덱스(1~4) 보존
+        // [수정] 100% 무결성 확보를 위한 원본 인덱스 맵핑
         const indexed = q.choices.map((text, i) => ({ text, originalIdx: String(i + 1) }));
         shuffle(indexed).forEach((choice, idx) => {
             const btn = document.createElement('button');
             btn.className = 'btn-outline';
             btn.style.marginBottom = '10px';
             btn.innerText = `${idx + 1}. ${choice.text}`;
-            // choice.originalIdx를 넘겨 DB의 I열 정답과 대조하게 함
-            btn.onclick = () => processAnswer(choice.originalIdx, choice.text, idx + 1);
+            
+            // [패치] 클로저 이슈 해결을 위해 데이터셋에 원본 번호 직접 박제
+            btn.dataset.originalIdx = choice.originalIdx;
+            btn.onclick = () => processAnswer(btn.dataset.originalIdx, choice.text);
+            
             area.appendChild(btn);
         });
     } else {
@@ -328,14 +331,14 @@ function renderQuestion() {
         input.focus();
     }
 }
-
-function processAnswer(userVal, userText, visualIdx) {
+    
+function processAnswer(userVal, userText) {
     const q = state.questions[state.currentIndex];
     
-    // I열(q.answer)은 1, 2, 3, 4 중 하나임. userVal(originalIdx)와 대조
+    // [판정] 타입 및 공백 이슈 원천 차단 (최신 브라우저 최적화)
     const isCorrect = (q.sheetType === 'MULTI')
-        ? (String(userVal) === String(q.answer))
-        : (q.answer.split(',').map(a => clean(a)).includes(clean(userVal)));
+        ? (String(userVal).trim() === String(q.answer).trim())
+        : (q.answer.split(',').some(a => clean(a) === clean(userVal)));
 
     const resultObj = { 
         problem: q.problem, 
@@ -351,44 +354,36 @@ function processAnswer(userVal, userText, visualIdx) {
     state.results.push(resultObj);
     currentResultRef = resultObj; 
 
-    // Feedback UI
     const layer = document.getElementById('feedback-layer');
     const status = document.getElementById('fb-status');
+    const answerEl = document.getElementById('fb-answer'); // 정답 텍스트 요소
     const specBtn = document.getElementById('btn-special');
     
-    status.innerText = isCorrect ? "● RADAR CONTACT (CORRECT)" : "● UNIDENTIFIED (INCORRECT)";
-    status.style.color = isCorrect ? 'var(--radar-green)' : 'var(--danger-red)';
-    status.style.background = isCorrect ? 'var(--radar-dim)' : 'var(--danger-dim)';
+    // [패치] 피드백 컬러 직관화 (정답=녹색, 오답=붉은색)
+    const colorCorrect = "#30d158";
+    const colorIncorrect = "#ff453a";
     
-    // 오답 시 시각적 번호 매칭 로직 적용
+    status.innerText = isCorrect ? "● RADAR CONTACT (CORRECT)" : "● UNIDENTIFIED (INCORRECT)";
+    status.style.color = isCorrect ? colorCorrect : colorIncorrect;
+    status.style.background = isCorrect ? 'rgba(48, 209, 88, 0.15)' : 'rgba(255, 69, 58, 0.15)';
+    
+    // [패치] 정답 안내 텍스트 색상 고정
+    answerEl.style.color = isCorrect ? colorCorrect : colorIncorrect;
+    
     if (q.sheetType === 'MULTI') {
-        // 현재 화면에서 원본 정답 번호(q.answer)를 가진 버튼의 시각적 번호를 찾음
-        const btns = document.querySelectorAll('#quiz-options button');
-        let visualCorrectNum = "?";
-        btns.forEach((b, idx) => {
-            // 버튼 생성 시 맵핑된 원본 정보를 버튼 객체나 다른 방식으로 찾을 수 없으므로, 
-            // 현재 화면의 버튼들을 순회하며 다시 원본 인덱스를 계산하거나 
-            // 렌더링 시점에 이미 알고 있는 정보를 활용 (여기서는 시각적 번호 안내를 위해 동적 탐색)
-            // 본 패치에서는 렌더링 루프 내에서 처리하는 것이 가장 정확함
-        });
-        
-        // 정답 텍스트 구성: "정답: X번 (내용)"
         const correctChoiceText = q.choices[parseInt(q.answer) - 1];
-        document.getElementById('fb-answer').innerText = `정답: ${correctChoiceText}`;
+        answerEl.innerText = isCorrect ? `정답: ${correctChoiceText}` : `오답: ${userText} (정답: ${correctChoiceText})`;
     } else {
-        document.getElementById('fb-answer').innerText = `정답: ${q.answer}`;
+        answerEl.innerText = isCorrect ? `정답: ${q.answer}` : `오답: ${userText} (정답: ${q.answer})`;
     }
 
     document.getElementById('fb-explan').innerText = q.explan || "No supplementary information.";
     
+    // 기존 UI 유지 (EZ/HELL 버튼 분기)
     if (state.difficulty === 'EZ') {
         specBtn.innerText = "🔄 GO AROUND";
         specBtn.style.color = 'var(--text-white)';
-        specBtn.onclick = () => { 
-            state.results.pop(); 
-            layer.style.display = 'none'; 
-            nextQuestion(); 
-        };
+        specBtn.onclick = () => { state.results.pop(); layer.style.display = 'none'; nextQuestion(); };
     } else {
         specBtn.innerText = "⚠️ DEVIATION";
         specBtn.style.color = 'var(--text-white)';
@@ -401,16 +396,11 @@ function processAnswer(userVal, userText, visualIdx) {
         };
     }
 
-    document.getElementById('btn-next').onclick = () => { 
-        layer.style.display = 'none'; 
-        currentResultRef = null; 
-        nextQuestion(); 
-    };
+    document.getElementById('btn-next').onclick = () => { layer.style.display = 'none'; currentResultRef = null; nextQuestion(); };
 
-    // LOCK UI
+    // [UI 보존] 입력 잠금 로직
     if (q.sheetType === 'MULTI') {
-        const btns = document.querySelectorAll('#quiz-options button');
-        btns.forEach(b => {
+        document.querySelectorAll('#quiz-options button').forEach(b => {
             b.disabled = true;
             b.style.pointerEvents = 'none';
             b.style.opacity = '0.7';
