@@ -288,38 +288,48 @@ function renderQuestion() {
     document.getElementById('feedback-layer').style.display = 'none';
     
     const q = state.questions[state.currentIndex];
+    
+    // [Safety Guard] 데이터 무결성 검증 - 문제나 카테고리가 없으면 에러 처리
+    if (!q || !q.problem) {
+        console.error("Flight Path Deviation: Problem data is missing.");
+        document.getElementById('question-text').innerText = "DATA ERROR: 정지된 데이터 유입. 다음 문항으로 강제 이동합니다.";
+        setTimeout(nextQuestion, 1500);
+        return;
+    }
+    
     const st = state.stats.find(s => clean(s.problem) === clean(q.problem)) || { count: 0, wrong: 0, rate: 0 };
     
     document.getElementById('quiz-pos').innerText = `POS: ${state.currentIndex + 1} / ${state.questions.length}`;
     document.getElementById('quiz-pb').style.width = `${((state.currentIndex + 1) / state.questions.length) * 100}%`;
-    document.getElementById('question-stats').innerText = `기출: ${st.count} | 오답: ${st.wrong} | 오답률: ${(st.rate * 100).toFixed(1)}%`;
-    document.getElementById('question-text').innerText = `[${q.category}] ${q.problem}`;
+    document.getElementById('question-stats').innerText = `기출: ${st.count} | 오답: ${st.wrong} | 오답률: ${(Number(st.rate) * 100).toFixed(1)}%`;
+    
+    // [UI Fix] 카테고리나 내용이 없을 경우 대비 기본값 설정
+    const categoryLabel = q.category || "UNSPECIFIED";
+    const problemText = q.problem || "No Problem Statement";
+    document.getElementById('question-text').innerText = `[${categoryLabel}] ${problemText}`;
     
     const area = document.getElementById('quiz-options');
     area.innerHTML = '';
 
-    if (q.sheetType === 'MULTI') {
-        // [수정] 100% 무결성 확보를 위한 원본 인덱스 맵핑
+    if (q.sheetType === 'MULTI' || (q.choices && q.choices.length > 0)) {
         const indexed = q.choices.map((text, i) => ({ text, originalIdx: String(i + 1) }));
         shuffle(indexed).forEach((choice, idx) => {
             const btn = document.createElement('button');
             btn.className = 'btn-outline';
             btn.style.marginBottom = '10px';
             btn.innerText = `${idx + 1}. ${choice.text}`;
-            
-            // [패치] 클로저 이슈 해결을 위해 데이터셋에 원본 번호 직접 박제
             btn.dataset.originalIdx = choice.originalIdx;
             btn.onclick = () => processAnswer(btn.dataset.originalIdx, choice.text);
-            
             area.appendChild(btn);
         });
     } else {
         const input = document.createElement('input');
         input.type = 'text'; input.id = 'ans-input'; 
+        input.className = 'subj-input'; // 스타일 통일
         input.style.width = '100%'; input.style.padding = '15px';
         input.style.background = '#000'; input.style.color = '#fff';
         input.style.border = '1px solid #333'; input.style.borderRadius = '12px';
-        input.placeholder = 'Type Answer...';
+        input.placeholder = 'Confirm Answer...';
         input.onkeyup = (e) => e.key === 'Enter' && processAnswer(input.value, input.value);
         area.appendChild(input);
         
